@@ -13,9 +13,9 @@ class WPContentAI_REST {
 	}
 
 	public function register_routes() {
-		$args = array(
+		$text_args = array(
 			'methods'             => 'POST',
-			'permission_callback' => array( $this, 'check_permission' ),
+			'permission_callback' => array( $this, 'check_edit_permission' ),
 			'args'                => array(
 				'input' => array(
 					'type'              => 'string',
@@ -28,23 +28,49 @@ class WPContentAI_REST {
 		register_rest_route(
 			self::NAMESPACE,
 			'/generate',
-			array_merge( $args, array( 'callback' => array( $this, 'handle_generate' ) ) )
+			array_merge( $text_args, array( 'callback' => array( $this, 'handle_generate' ) ) )
 		);
 
 		register_rest_route(
 			self::NAMESPACE,
 			'/optimize',
-			array_merge( $args, array( 'callback' => array( $this, 'handle_optimize' ) ) )
+			array_merge( $text_args, array( 'callback' => array( $this, 'handle_optimize' ) ) )
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/image',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( $this, 'check_upload_permission' ),
+				'callback'            => array( $this, 'handle_image' ),
+				'args'                => array(
+					'prompt' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+				),
+			)
 		);
 	}
 
 	/**
-	 * Nur angemeldete Nutzer mit Schreibrechten dürfen die Endpoints nutzen.
+	 * Rechteprüfung für die Text-Endpoints.
 	 *
 	 * @return bool
 	 */
-	public function check_permission() {
+	public function check_edit_permission() {
 		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Rechteprüfung für den Bild-Endpoint (lädt in die Mediathek).
+	 *
+	 * @return bool
+	 */
+	public function check_upload_permission() {
+		return current_user_can( 'upload_files' );
 	}
 
 	/**
@@ -54,7 +80,7 @@ class WPContentAI_REST {
 	public function handle_generate( $request ) {
 		$claude = new WPContentAI_Claude();
 		$result = $claude->generate( $request->get_param( 'input' ) );
-		return $this->respond( $result );
+		return $this->respond_text( $result );
 	}
 
 	/**
@@ -64,16 +90,36 @@ class WPContentAI_REST {
 	public function handle_optimize( $request ) {
 		$claude = new WPContentAI_Claude();
 		$result = $claude->optimize( $request->get_param( 'input' ) );
-		return $this->respond( $result );
+		return $this->respond_text( $result );
 	}
 
 	/**
-	 * Wandelt das Client-Ergebnis in eine REST-Antwort.
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_image( $request ) {
+		$gemini = new WPContentAI_Gemini();
+		$result = $gemini->generate( $request->get_param( 'prompt' ) );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new WP_REST_Response(
+			array(
+				'id'  => $result['id'],
+				'url' => $result['url'],
+			),
+			200
+		);
+	}
+
+	/**
+	 * Wandelt ein Text-Ergebnis in eine REST-Antwort.
 	 *
 	 * @param string|WP_Error $result Ergebnis des Claude-Clients.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function respond( $result ) {
+	private function respond_text( $result ) {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
