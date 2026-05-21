@@ -44,3 +44,23 @@ function wpcontentai_init() {
 	new WPContentAI_REST();
 }
 add_action( 'plugins_loaded', 'wpcontentai_init' );
+
+/**
+ * Lädt das Gutenberg-Editor-Plugin.
+ */
+function wpcontentai_enqueue_editor_assets() {
+	$asset_file = WPCONTENTAI_PATH . 'build/index.asset.php';
+	if ( ! file_exists( $asset_file ) ) {
+		return;
+	}
+	$asset = include $asset_file;
+
+	wp_enqueue_script(
+		'wpcontentai-editor',
+		WPCONTENTAI_URL . 'build/index.js',
+		$asset['dependencies'],
+		$asset['version'],
+		true
+	);
+}
+add_action( 'enqueue_block_editor_assets', 'wpcontentai_enqueue_editor_assets' );
