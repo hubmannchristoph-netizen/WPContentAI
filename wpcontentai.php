@@ -18,6 +18,7 @@ define( 'WPCONTENTAI_URL', plugin_dir_url( __FILE__ ) );
 
 require_once WPCONTENTAI_PATH . 'includes/class-settings.php';
 require_once WPCONTENTAI_PATH . 'includes/class-claude.php';
+require_once WPCONTENTAI_PATH . 'includes/class-gemini.php';
 require_once WPCONTENTAI_PATH . 'includes/class-rest.php';
 
 /**
