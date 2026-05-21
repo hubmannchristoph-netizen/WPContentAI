@@ -16,12 +16,13 @@ class WPContentAI_Settings {
 	/**
 	 * Liefert die gespeicherten Einstellungen mit Defaults.
 	 *
-	 * @return array{api_key:string,model:string}
+	 * @return array{api_key:string,model:string,gemini_key:string}
 	 */
 	public static function get() {
 		$defaults = array(
-			'api_key' => '',
-			'model'   => 'claude-sonnet-4-6',
+			'api_key'    => '',
+			'model'      => 'claude-sonnet-4-6',
+			'gemini_key' => '',
 		);
 		return wp_parse_args( get_option( self::OPTION, array() ), $defaults );
 	}
@@ -56,8 +57,9 @@ class WPContentAI_Settings {
 		$model          = isset( $input['model'] ) ? $input['model'] : 'claude-sonnet-4-6';
 
 		return array(
-			'api_key' => isset( $input['api_key'] ) ? sanitize_text_field( $input['api_key'] ) : '',
-			'model'   => in_array( $model, $allowed_models, true ) ? $model : 'claude-sonnet-4-6',
+			'api_key'    => isset( $input['api_key'] ) ? sanitize_text_field( $input['api_key'] ) : '',
+			'model'      => in_array( $model, $allowed_models, true ) ? $model : 'claude-sonnet-4-6',
+			'gemini_key' => isset( $input['gemini_key'] ) ? sanitize_text_field( $input['gemini_key'] ) : '',
 		);
 	}
 
@@ -103,6 +105,17 @@ class WPContentAI_Settings {
 								}
 								?>
 							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="wpcontentai_gemini_key">Gemini API-Key</label>
+						</th>
+						<td>
+							<input type="password" id="wpcontentai_gemini_key"
+								name="<?php echo esc_attr( self::OPTION ); ?>[gemini_key]"
+								value="<?php echo esc_attr( $settings['gemini_key'] ); ?>"
+								class="regular-text" autocomplete="off" />
 						</td>
 					</tr>
 				</table>
