@@ -53,6 +53,73 @@ class WPContentAI_REST {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/outline',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( $this, 'check_edit_permission' ),
+				'callback'            => array( $this, 'handle_outline' ),
+				'args'                => $this->wizard_args( false ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/compose',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( $this, 'check_edit_permission' ),
+				'callback'            => array( $this, 'handle_compose' ),
+				'args'                => $this->wizard_args( true ),
+			)
+		);
+	}
+
+	/**
+	 * Gemeinsame Argument-Definition für /outline und /compose.
+	 *
+	 * @param bool $is_compose true für /compose (mit outline-Feld statt headings).
+	 * @return array
+	 */
+	private function wizard_args( $is_compose ) {
+		$args = array(
+			'topic'       => array(
+				'type'              => 'string',
+				'required'          => true,
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+			'length'      => array(
+				'type'              => 'string',
+				'required'          => true,
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'tone'        => array(
+				'type'              => 'string',
+				'required'          => true,
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'image_count' => array(
+				'type'     => 'integer',
+				'required' => true,
+			),
+		);
+
+		if ( $is_compose ) {
+			$args['outline'] = array(
+				'type'     => 'object',
+				'required' => true,
+			);
+		} else {
+			$args['headings'] = array(
+				'type'              => 'string',
+				'required'          => true,
+				'sanitize_callback' => 'sanitize_text_field',
+			);
+		}
+
+		return $args;
 	}
 
 	/**
@@ -111,6 +178,46 @@ class WPContentAI_REST {
 			),
 			200
 		);
+	}
+
+	/**
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_outline( $request ) {
+		$claude = new WPContentAI_Claude();
+		$result = $claude->outline(
+			$request->get_param( 'topic' ),
+			$request->get_param( 'length' ),
+			$request->get_param( 'tone' ),
+			$request->get_param( 'headings' ),
+			(int) $request->get_param( 'image_count' )
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_compose( $request ) {
+		$claude = new WPContentAI_Claude();
+		$result = $claude->compose(
+			$request->get_param( 'topic' ),
+			$request->get_param( 'length' ),
+			$request->get_param( 'tone' ),
+			(int) $request->get_param( 'image_count' ),
+			$request->get_param( 'outline' )
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new WP_REST_Response( $result, 200 );
 	}
 
 	/**
