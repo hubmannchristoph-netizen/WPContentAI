@@ -194,8 +194,8 @@ class WPContentAI_REST {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_image( $request ) {
-		$gemini = new WPContentAI_Gemini();
-		$result = $gemini->generate( $request->get_param( 'prompt' ) );
+		$image = new WPContentAI_Image();
+		$result = $image->generate( $request->get_param( 'prompt' ) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

@@ -3,7 +3,7 @@
  * Plugin Name:       WPContentAI
  * Description:       Generiert und optimiert Inhalte per Anthropic Claude API – direkt im Gutenberg-Editor.
  * Version:           0.1.0
- * Requires at least: 6.4
+ * Requires at least: 7.0
  * Requires PHP:      7.4
  * Author:            WPContentAI
  * License:           GPL-2.0-or-later
@@ -16,32 +16,28 @@ define( 'WPCONTENTAI_VERSION', '0.1.0' );
 define( 'WPCONTENTAI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WPCONTENTAI_URL', plugin_dir_url( __FILE__ ) );
 
-require_once WPCONTENTAI_PATH . 'includes/class-settings.php';
 require_once WPCONTENTAI_PATH . 'includes/class-claude.php';
-require_once WPCONTENTAI_PATH . 'includes/class-gemini.php';
+require_once WPCONTENTAI_PATH . 'includes/class-image.php';
 require_once WPCONTENTAI_PATH . 'includes/class-rest.php';
 
 /**
- * Default-Optionen beim Aktivieren setzen.
+ * Prüft, ob der native WordPress 7.0 AI-Client verfügbar ist.
  */
-function wpcontentai_activate() {
-	if ( false === get_option( 'wpcontentai_settings' ) ) {
-		add_option(
-			'wpcontentai_settings',
-			array(
-				'api_key' => '',
-				'model'   => 'claude-sonnet-4-6',
-			)
-		);
+function wpcontentai_check_ai_client() {
+	if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'WPContentAI benötigt WordPress 7.0 mit aktiviertem KI-Client und ein KI-Provider-Plugin (Konnektoren).', 'wpcontentai' ); ?></p>
+		</div>
+		<?php
 	}
 }
-register_activation_hook( __FILE__, 'wpcontentai_activate' );
+add_action( 'admin_notices', 'wpcontentai_check_ai_client' );
 
 /**
  * Plugin-Komponenten initialisieren.
  */
 function wpcontentai_init() {
-	new WPContentAI_Settings();
 	new WPContentAI_REST();
 }
 add_action( 'plugins_loaded', 'wpcontentai_init' );

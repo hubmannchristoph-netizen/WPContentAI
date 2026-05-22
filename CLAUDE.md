@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Überblick
 
-WPContentAI ist ein WordPress-Plugin, das Inhalte per Anthropic Claude API
+WPContentAI ist ein WordPress-Plugin, das Inhalte per nativem WordPress-7.0-AI-Client
 generiert und optimiert. Bedienung über eine Gutenberg-Editor-Sidebar.
 
 ## Build-Befehle
@@ -22,21 +22,15 @@ nach Änderungen in `src/` immer `npm run build` ausführen.
 Schlankes OOP-Plugin. `wpcontentai.php` ist der Einstiegspunkt: definiert
 Konstanten, lädt die drei Klassen aus `includes/` und registriert Hooks.
 
-- `includes/class-settings.php` – Admin-Menü + Einstellungsseite. Speichert
-  API-Key und Modell in der Option `wpcontentai_settings`. `WPContentAI_Settings::get()`
-  liefert die Einstellungen mit Defaults und ist die einzige Lesequelle dafür.
-- `includes/class-claude.php` – Kapselt den Anthropic-API-Zugriff. Im Grundgerüst
-  liefern `generate()` / `optimize()` Platzhalter-Text. Der echte
-  `wp_remote_post`-Aufruf ist als auskommentierter `TODO`-Block vorhanden.
+- `includes/class-claude.php` – Kapselt den Zugriff auf den WordPress-7.0-AI-Client für Textgenerierung (Claude).
+- `includes/class-image.php` – Verwaltet die Bildgenerierung über den WordPress-7.0-AI-Client und speichert Bilder in der Mediathek.
 - `includes/class-rest.php` – REST-Endpoints unter `wpcontentai/v1`
-  (`POST /generate`, `POST /optimize`). Prüft `edit_posts`-Rechte.
+  (`POST /generate`, `POST /optimize`, `POST /image` etc.). Prüft Rechte.
 
 Datenfluss: Sidebar (`src/sidebar.js`) → `apiFetch` → REST-Endpoint →
-`WPContentAI_Claude` → Antwort zurück in den Editor.
+`WPContentAI_Claude` / `WPContentAI_Image` → WordPress Core-AI-Client (Konnektoren) → Antwort zurück in den Editor.
 
 ## Konventionen
 
 - Jede PHP-Datei beginnt mit `defined( 'ABSPATH' ) || exit;`.
-- Der API-Key bleibt serverseitig; er wird nie an das Frontend ausgegeben.
-- Erlaubte Modelle sind in `WPContentAI_Settings::sanitize()` als Whitelist
-  gepflegt – neue Modelle dort UND im Dropdown in `render_page()` ergänzen.
+- Keine Einstellungsseite; Schlüssel und Modelle werden zentral in WordPress unter „Einstellungen → Konnektoren“ verwaltet.
