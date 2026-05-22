@@ -75,6 +75,35 @@ class WPContentAI_REST {
 				'args'                => $this->wizard_args( true ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/block',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( $this, 'check_edit_permission' ),
+				'callback'            => array( $this, 'handle_block' ),
+				'args'                => array(
+					'kind'    => array(
+						'type'     => 'string',
+						'required' => true,
+						'enum'     => array( 'absatz', 'ueberschrift', 'zusammenfassung' ),
+					),
+					'prompt'  => array(
+						'type'              => 'string',
+						'required'          => false,
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'context' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -218,6 +247,30 @@ class WPContentAI_REST {
 			return $result;
 		}
 		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_block( $request ) {
+		$claude = new WPContentAI_Claude();
+		$result = $claude->block(
+			$request->get_param( 'kind' ),
+			$request->get_param( 'prompt' ),
+			$request->get_param( 'context' )
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new WP_REST_Response(
+			array(
+				'heading' => $result['heading'],
+				'text'    => $result['text'],
+			),
+			200
+		);
 	}
 
 	/**
