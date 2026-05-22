@@ -136,6 +136,73 @@ class WPContentAI_Claude {
 	}
 
 	/**
+	 * Erzeugt Inhalt für einen einzelnen KI-Block.
+	 *
+	 * @param string $kind    'absatz', 'ueberschrift' oder 'zusammenfassung'.
+	 * @param string $prompt  Prompt des Autors (leer bei 'zusammenfassung').
+	 * @param string $context Bestehender Beitragstext als Kontext.
+	 * @return array{heading:string,text:string}|WP_Error
+	 */
+	public function block( $kind, $prompt, $context ) {
+		if ( 'absatz' === $kind ) {
+			$system = 'Du bist ein erfahrener Redakteur. Schreibe einen einzelnen, gut lesbaren Absatz auf Deutsch zum vom Nutzer gewünschten Inhalt. Berücksichtige den bestehenden Beitragstext als Kontext. Gib nur den Absatztext zurück, keine Vorbemerkungen.';
+			$user   = sprintf( 'Gewünschter Inhalt: %s. Bestehender Beitragstext als Kontext: %s', $prompt, $context );
+			$text   = $this->call_api( $system, $user );
+			if ( is_wp_error( $text ) ) {
+				return $text;
+			}
+			return array(
+				'heading' => '',
+				'text'    => $text,
+			);
+		}
+
+		if ( 'zusammenfassung' === $kind ) {
+			$system = 'Du bist ein erfahrener Redakteur. Fasse den vom Nutzer gelieferten Beitragstext in einem kurzen Absatz auf Deutsch zusammen. Gib nur den Zusammenfassungstext zurück, keine Vorbemerkungen.';
+			$user   = sprintf( 'Beitragstext: %s', $context );
+			$text   = $this->call_api( $system, $user );
+			if ( is_wp_error( $text ) ) {
+				return $text;
+			}
+			return array(
+				'heading' => '',
+				'text'    => $text,
+			);
+		}
+
+		if ( 'ueberschrift' === $kind ) {
+			$system = 'Du bist ein erfahrener Redakteur. Erzeuge eine Zwischenüberschrift und einen dazu passenden Absatz auf Deutsch zum vom Nutzer gewünschten Inhalt. Berücksichtige den bestehenden Beitragstext als Kontext. '
+				. 'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne weiteren Text, in genau diesem Format: {"heading": "Überschrift", "text": "Absatztext"}.';
+			$user = sprintf( 'Gewünschter Inhalt: %s. Bestehender Beitragstext als Kontext: %s', $prompt, $context );
+			$text = $this->call_api( $system, $user );
+			if ( is_wp_error( $text ) ) {
+				return $text;
+			}
+			$data = $this->decode_json( $text );
+			if ( is_wp_error( $data ) ) {
+				return $data;
+			}
+			if ( ! isset( $data['heading'] ) || ! isset( $data['text'] ) ) {
+				return new WP_Error(
+					'wpcontentai_parse',
+					'Die KI-Antwort konnte nicht verarbeitet werden.',
+					array( 'status' => 502 )
+				);
+			}
+			return array(
+				'heading' => (string) $data['heading'],
+				'text'    => (string) $data['text'],
+			);
+		}
+
+		return new WP_Error(
+			'wpcontentai_bad_kind',
+			'Unbekannter Block-Typ.',
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
 	 * Ruft die Claude API mit System- und Nutzer-Prompt auf.
 	 *
 	 * @param string $system System-Prompt.
